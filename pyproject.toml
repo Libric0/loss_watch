@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "loss-watch"
+authors = [
+    { name = "Fredrik Konrad", email = "loss-watch@librico.mozmail.com" },
+]
+description = "A dynamic progress indicator that displays train and validation losses."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dynamic = ["version"]
+dependencies = ["ipywidgets >= 8.1"]
+
+[project.optional-dependencies]
+palettes = ["seaborn >= 0.13"]
+[tool.setuptools.packages.find]
+include = ["loss_watch"]
+exclude = ["prototyping"]
+
+[tool.setuptools.dynamic]
+version = { attr = "loss_watch.__version__" }
