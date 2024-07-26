@@ -53,7 +53,7 @@ The resulting plot will look something like this:
 The black parts indicate that there was no validation data yet. You can also see that the min loss and max loss of the training step are marked in red and cyan. This is because all plots will share the colors for the minimum and maximum loss, making it easier for you to compare them. The marked losses correspond to the overall minimum and maximum here, respectively. 
 
 ### Quick Mode
-While the above examples always illustrated the training and validation steps as functions returning a float, you are allowed to obtain these values however you like. However, if you already packaged your training/validation logic into functions, you can get plot your losses in a one-liner:
+While the above examples always illustrated the training and validation steps as functions returning a float, you are allowed to obtain these values however you like. However, if you already packaged your training/validation logic into functions, you can plot your losses in a one-liner:
 ```python
 LossProgressBar.run(epochs=epochs, train_step=train_step, val_step1=val_step, val_step2=val_step2)
 ```
