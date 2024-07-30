@@ -33,7 +33,7 @@ class LossProgressBar:
         The current epoch.
         '''
         # Storage
-        self._train_losses = []
+        self._train_losses = {}
         '''
         The losses that are generated in each training step.
         '''
@@ -98,10 +98,11 @@ class LossProgressBar:
 
     def update(self,
                epoch: int,
-               train_loss: float,
+               train_loss: float | None = None,
                **val_losses: float
                ):
-        self._train_losses.append(self.scaling_function(train_loss))
+        if train_loss is not None:
+            self._train_losses[epoch] = train_loss
 
         for other_loss_name, loss in val_losses.items():
             if self._val_losses.get(other_loss_name) is None:
@@ -117,8 +118,8 @@ class LossProgressBar:
 
     def draw(self, epoch: int):
         # Training and validation step should share an overall minimum and maximum
-        overall_min = min(self._train_losses)
-        overall_max = max(self._train_losses)
+        overall_min = min(self._train_losses.values())
+        overall_max = max(self._train_losses.values())
         for other_loss_name, losses in self._val_losses.items():
             if self._val_losses[other_loss_name] == {}:
                 continue
@@ -134,11 +135,11 @@ class LossProgressBar:
     def draw_utf_8(self, epoch: int, overall_min: float, overall_max: float):
         content = self.create_utf8_loading_bar(
             epoch,
-            self._train_losses,
+            loss_dict_to_list(self._train_losses, epoch),
             visual_min_loss=overall_min,
             visual_max_loss=overall_max,
-            text_min_loss=min(self._train_losses),
-            text_max_loss=max(self._train_losses),
+            text_min_loss=min(self._train_losses.values()),
+            text_max_loss=max(self._train_losses.values()),
             name="train_step"
         )
 
@@ -187,11 +188,11 @@ class LossProgressBar:
     def draw_svg(self, epoch, overall_min, overall_max):
         train_progress_bar_svg = self.create_svg_progress_bar(
             epoch,
-            self._train_losses,
+            loss_dict_to_list(self._train_losses, epoch),
             visual_min_loss=overall_min,
             visual_max_loss=overall_max,
-            text_min_loss=min(self._train_losses),
-            text_max_loss=max(self._train_losses),
+            text_min_loss=min(self._train_losses.values()),
+            text_max_loss=max(self._train_losses.values()),
             name="train_step"
         )
         progress_bar_html = '''
