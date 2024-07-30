@@ -114,7 +114,7 @@ class LossProgressBar:
     def draw_warnings_utf8(self):
         ret = ''
         for warning, count in self._warnings.items():
-            ret += f'\033[1m\033[91mWarning\033[0m: {warning}: {count}x\n'
+            ret += f'Warning: {warning}: {count}x\n'
         return ret
 
     def update(self,
@@ -123,16 +123,16 @@ class LossProgressBar:
                **val_losses: float
                ):
         if train_loss is not None:
-            if self._train_losses.get(epoch) is not None:
-                self._warn(f'train_loss was updated multiple times within the same epoch')
+            if self._train_losses.get(epoch) != train_loss:
+                self._warn(f'train_loss was updated multiple times with different values within the same epoch')
             self._train_losses[epoch] = train_loss
 
         for other_loss_name, loss in val_losses.items():
             if self._val_losses.get(other_loss_name) is None:
                 self._val_losses[other_loss_name] = dict()
             if val_losses[other_loss_name] is not None:
-                if self._val_losses[other_loss_name].get(epoch) is not None:
-                    self._warn(f'{other_loss_name} was updated multiple times within the same epoch')
+                if self._val_losses[other_loss_name].get(epoch) != val_losses:
+                    self._warn(f'{other_loss_name} was updated with multiple times with different values within the same epoch')
                 self._val_losses[other_loss_name][epoch] = self.scaling_function(
                     loss)
         # Only draw at most at given Framerate
