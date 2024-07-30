@@ -12,7 +12,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 dynamic = ["version"]
-dependencies = ["ipywidgets >= 8.1"]
+dependencies = ["ipywidgets >= 8.1", "colorama >= 0.4"]
 
 [project.optional-dependencies]
 palettes = ["seaborn >= 0.13"]

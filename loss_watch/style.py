@@ -72,3 +72,6 @@ def get_contrasting_font_color(color_hex: str):
         return "ffffffff"
     else:
         return "000000ff"
+
+def get_warning_font_color():
+    return _standard_palette(1)

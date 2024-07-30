@@ -4,7 +4,7 @@ import time
 from typing import Callable
 from .display_components import init_display
 from .util import apply_binning, loss_dict_to_list, apply_sliding_window
-from .style import get_color_continuous, get_contrasting_font_color
+from .style import get_color_continuous, get_contrasting_font_color, get_warning_font_color
 
 UTF_PROGRESS_BAR_LENGTH = 40
 FRAMES_PER_SECOND = 30
@@ -33,7 +33,7 @@ class LossProgressBar:
         The current epoch.
         '''
         # Storage
-        self._train_losses = {}
+        self._train_losses = dict()
         '''
         The losses that are generated in each training step.
         '''
@@ -55,6 +55,9 @@ class LossProgressBar:
             self._display_type = "text"
         self._display_content = None
         self._last_draw: float = 0
+        
+        # warning management
+        self._warnings = dict()
 
     @classmethod
     def get_gradient_id(cls) -> str:
@@ -94,7 +97,25 @@ class LossProgressBar:
     def __next__(self):
         self._epoch = next(self._iterator)
         # Returning the current epoch, as well as an update method
-        return self._epoch, lambda train_loss, **val_losses: self.update(self._epoch, train_loss, **val_losses)
+        return self._epoch, lambda train_loss = None, **val_losses: self.update(self._epoch, train_loss, **val_losses)
+
+    def _warn(self, warning: str):
+        if self._warnings.get(warning) is not None:
+            self._warnings[warning] += 1
+        else:
+            self._warnings[warning] = 1
+    
+    def draw_warnings_html(self):
+        ret = '<div>'
+        for warning, count in self._warnings.items():
+            ret += f'<span style="color:{get_warning_font_color()};font-weight:bold">Warning:</span> {warning}: {count}x\n<br>\n'
+        return ret +'</div>'
+    
+    def draw_warnings_utf8(self):
+        ret = ''
+        for warning, count in self._warnings.items():
+            ret += f'\033[1m\033[91mWarning\033[0m: {warning}: {count}x\n'
+        return ret
 
     def update(self,
                epoch: int,
@@ -102,12 +123,16 @@ class LossProgressBar:
                **val_losses: float
                ):
         if train_loss is not None:
+            if self._train_losses.get(epoch) is not None:
+                self._warn(f'train_loss was updated multiple times within the same epoch')
             self._train_losses[epoch] = train_loss
 
         for other_loss_name, loss in val_losses.items():
             if self._val_losses.get(other_loss_name) is None:
                 self._val_losses[other_loss_name] = dict()
             if val_losses[other_loss_name] is not None:
+                if self._val_losses[other_loss_name].get(epoch) is not None:
+                    self._warn(f'{other_loss_name} was updated multiple times within the same epoch')
                 self._val_losses[other_loss_name][epoch] = self.scaling_function(
                     loss)
         # Only draw at most at given Framerate
@@ -115,6 +140,7 @@ class LossProgressBar:
         if current_time - self._last_draw >= 1/FRAMES_PER_SECOND or epoch == self.epochs-1:
             self.draw(epoch)
             self._last_draw = current_time
+        
 
     def draw(self, epoch: int):
         # Training and validation step should share an overall minimum and maximum
@@ -166,7 +192,7 @@ class LossProgressBar:
                     # Move the cursor up and clear the line
                     print("\33[1A", end="\x1b[2K")
             # printing the content
-            self._display_content = content
+            self._display_content = content + self.draw_warnings_utf8()
             print(self._display_content)
         else:
             content = content.replace("\n", "<br>").replace(" ", "&nbsp;")
@@ -177,7 +203,7 @@ class LossProgressBar:
                 }
             </style>
             '''
-            content = style + content
+            content = style + content + self.draw_warnings_html()
             if self._display_content is None:
                 self._display_content = self._display_components["HTML"](
                     value=content)
@@ -221,7 +247,9 @@ class LossProgressBar:
             )
             progress_bar_html += f"<br>{val_progress_bar_svg}"
 
-            # Initializing or updating the displayed output
+        # Adding warnings
+        progress_bar_html += self.draw_warnings_html()
+        # Initializing or updating the displayed output
 
         if self._display_content is None:
             # Init
