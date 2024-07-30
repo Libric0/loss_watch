@@ -1,12 +1,13 @@
 from __future__ import annotations
 import random
+import time
 from typing import Callable
 from .display_components import init_display
 from .util import apply_binning, loss_dict_to_list, apply_sliding_window
 from .style import get_color_continuous, get_contrasting_font_color
 
 UTF_PROGRESS_BAR_LENGTH = 40
-
+FRAMES_PER_SECOND = 30
 
 class LossProgressBar:
     last_gradient_id_start: int = 0
@@ -53,6 +54,7 @@ class LossProgressBar:
         if self._display_components is None:
             self._display_type = "text"
         self._display_content = None
+        self._last_draw: float = 0
 
     @classmethod
     def get_gradient_id(cls) -> str:
@@ -70,12 +72,14 @@ class LossProgressBar:
             val_interval: int = 1,
             relative_window_size: float = 0.05,
             scaling_function: Callable[[float], float] = lambda x: x,
+            display_type: str = None,
             **val_steps: Callable[[], float],
             ):
         loss_progress_bar = LossProgressBar(
             epochs=epochs,
             relative_window_size=relative_window_size,
-            scaling_function=scaling_function)
+            scaling_function=scaling_function,
+            display_type=display_type)
         for epoch, update in loss_progress_bar:
             train_loss = train_step()
             val_losses = dict()
@@ -105,7 +109,11 @@ class LossProgressBar:
             if val_losses[other_loss_name] is not None:
                 self._val_losses[other_loss_name][epoch] = self.scaling_function(
                     loss)
-        self.draw(epoch)
+        # Only draw at most at given Framerate
+        current_time = time.time()
+        if current_time - self._last_draw >= 1/FRAMES_PER_SECOND or epoch == self.epochs-1:
+            self.draw(epoch)
+            self._last_draw = current_time
 
     def draw(self, epoch: int):
         # Training and validation step should share an overall minimum and maximum
@@ -196,7 +204,7 @@ class LossProgressBar:
             }  
             </style>
             '''
-        progress_bar_html += f"<div>{train_progress_bar_svg}</div>"
+        progress_bar_html += f"{train_progress_bar_svg}"
 
         for other_loss_name, losses in self._val_losses.items():
             if losses == {}:
@@ -210,7 +218,7 @@ class LossProgressBar:
                 text_max_loss=max(losses.values()),
                 name=other_loss_name
             )
-            progress_bar_html += f"<div>{val_progress_bar_svg}</div>"
+            progress_bar_html += f"<br>{val_progress_bar_svg}"
 
             # Initializing or updating the displayed output
 
