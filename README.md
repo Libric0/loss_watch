@@ -26,9 +26,6 @@ It does not really matter how you get your training loss here, any float works. 
 
 As you can see, your highest loss is displayed in red, and the lowest in a light cyan. 
 
-> **Important!**
-> Your progress bar expects an update on the training loss after every step. Otherwise, your visuals might get weird. After all, why wouldn't you supply the training loss in every step?
-
 ### Validation
 Once in a while, you would probably like to validate your model on one or multiple validation sets. Your Loss progress bar can handle as many as you like. And in contrast to your training loss, you can validate in any interval you like! Simply pass a named float to the `update` function, and it will generate another progress bar, that corresponds to this name, for you.
 
@@ -37,16 +34,18 @@ If you extend our example to the following:
 for epoch, update in LossProgressBar(epochs):
     # Perform your models training step and retrieve a float `loss`
     train_loss = train_step()
-    val_loss1 = None
-    val_loss2 = None
     if epoch % 10 == 9:
         # A cheap validation
         val_loss1 = val_step()
+        update(val_step1=val_loss1)
     if epoch % 25 == 24:
         # A more expensive validation
         val_loss2 = val_step2()
-    update(train_loss, val_step1=val_loss1, val_step2=val_loss2)
+        update(val_step2=val_loss2)
+    update(train_loss)
 ```
+As you can see, you can call update multiple times. You can also not call update at all for any of your losses *including the train loss*. Missing values will be interpolated.
+
 The resulting plot will look something like this:
 ![img](images/train_and_val_loss_plot_1.png)
 
