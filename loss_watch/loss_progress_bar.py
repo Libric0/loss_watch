@@ -71,7 +71,7 @@ class LossProgressBar:
 
     @staticmethod
     def run(epochs: int,
-            train_step: Callable[[], float],
+            train_step: Callable[[], float] | None = None,
             val_interval: int = 1,
             relative_window_size: float = 0.05,
             scaling_function: Callable[[float], float] = lambda x: x,
@@ -83,8 +83,11 @@ class LossProgressBar:
             relative_window_size=relative_window_size,
             scaling_function=scaling_function,
             display_type=display_type)
+        
         for epoch, update in loss_progress_bar:
-            train_loss = train_step()
+            train_loss = None
+            if train_step is not None:
+                train_loss = train_step()
             val_losses = dict()
             if epoch % val_interval == 0:
                 for val_step, func in val_steps.items():
@@ -123,15 +126,15 @@ class LossProgressBar:
                **val_losses: float
                ):
         if train_loss is not None:
-            if self._train_losses.get(epoch) != train_loss:
+            if self._train_losses.get(epoch) != train_loss and self._train_losses.get(epoch) is not None:
                 self._warn(f'train_loss was updated multiple times with different values within the same epoch')
-            self._train_losses[epoch] = train_loss
+            self._train_losses[epoch] = self.scaling_function(train_loss)
 
         for other_loss_name, loss in val_losses.items():
             if self._val_losses.get(other_loss_name) is None:
                 self._val_losses[other_loss_name] = dict()
             if val_losses[other_loss_name] is not None:
-                if self._val_losses[other_loss_name].get(epoch) != val_losses:
+                if self._val_losses[other_loss_name].get(epoch) != loss and self._val_losses[other_loss_name].get(epoch) is not None:
                     self._warn(f'{other_loss_name} was updated with multiple times with different values within the same epoch')
                 self._val_losses[other_loss_name][epoch] = self.scaling_function(
                     loss)
@@ -143,9 +146,12 @@ class LossProgressBar:
         
 
     def draw(self, epoch: int):
+        overall_min = float('inf')
+        overall_max = float('-inf')
         # Training and validation step should share an overall minimum and maximum
-        overall_min = min(self._train_losses.values())
-        overall_max = max(self._train_losses.values())
+        if self._train_losses != {}:
+            overall_min = min(self._train_losses.values())
+            overall_max = max(self._train_losses.values())
         for other_loss_name, losses in self._val_losses.items():
             if self._val_losses[other_loss_name] == {}:
                 continue
@@ -159,15 +165,17 @@ class LossProgressBar:
             self.draw_svg(epoch, overall_min, overall_max)
 
     def draw_utf_8(self, epoch: int, overall_min: float, overall_max: float):
-        content = self.create_utf8_loading_bar(
-            epoch,
-            loss_dict_to_list(self._train_losses, epoch),
-            visual_min_loss=overall_min,
-            visual_max_loss=overall_max,
-            text_min_loss=min(self._train_losses.values()),
-            text_max_loss=max(self._train_losses.values()),
-            name="train_step"
-        )
+        content = ''
+        if self._train_losses != {}:
+            content += self.create_utf8_loading_bar(
+                epoch,
+                loss_dict_to_list(self._train_losses, epoch),
+                visual_min_loss=overall_min,
+                visual_max_loss=overall_max,
+                text_min_loss=min(self._train_losses.values()),
+                text_max_loss=max(self._train_losses.values()),
+                name="train_step"
+            )
 
         for other_loss_name, losses in self._val_losses.items():
             if losses == {}:
@@ -212,15 +220,6 @@ class LossProgressBar:
                 self._display_content.value = content
 
     def draw_svg(self, epoch, overall_min, overall_max):
-        train_progress_bar_svg = self.create_svg_progress_bar(
-            epoch,
-            loss_dict_to_list(self._train_losses, epoch),
-            visual_min_loss=overall_min,
-            visual_max_loss=overall_max,
-            text_min_loss=min(self._train_losses.values()),
-            text_max_loss=max(self._train_losses.values()),
-            name="train_step"
-        )
         progress_bar_html = '''
             <style>
             .cell-output-ipywidget-background {
@@ -231,7 +230,17 @@ class LossProgressBar:
             }  
             </style>
             '''
-        progress_bar_html += f"{train_progress_bar_svg}"
+        if self._train_losses != {}:
+            train_progress_bar_svg = self.create_svg_progress_bar(
+                epoch,
+                loss_dict_to_list(self._train_losses, epoch),
+                visual_min_loss=overall_min,
+                visual_max_loss=overall_max,
+                text_min_loss=min(self._train_losses.values()),
+                text_max_loss=max(self._train_losses.values()),
+                name="train_step"
+            )
+            progress_bar_html += f"{train_progress_bar_svg}"
 
         for other_loss_name, losses in self._val_losses.items():
             if losses == {}:
