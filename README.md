@@ -27,7 +27,7 @@ It does not really matter how you get your training loss here, any float works. 
 As you can see, your highest loss is displayed in red, and the lowest in a light cyan. 
 
 ### Validation
-Once in a while, you would probably like to validate your model on one or multiple validation sets. Your Loss progress bar can handle as many as you like. And in contrast to your training loss, you can validate in any interval you like! Simply pass a named float to the `update` function, and it will generate another progress bar, that corresponds to this name, for you.
+Once in a while, you would probably like to validate your model on one or multiple validation sets. Your Loss progress bar can handle as many as you like. Simply pass a named float to the `update` function, and it will generate another progress bar, that corresponds to this name, for you.
 
 If you extend our example to the following:
 ```python
