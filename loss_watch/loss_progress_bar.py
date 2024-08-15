@@ -4,10 +4,11 @@ import time
 from typing import Callable
 from .display_components import init_display
 from .util import apply_binning, loss_dict_to_list, apply_sliding_window
-from .style import get_color_continuous, get_contrasting_font_color, get_warning_font_color
+from .style import get_color_continuous, get_contrasting_font_color, get_warning_font_color, get_text_continuous
 
-UTF_PROGRESS_BAR_LENGTH = 40
+UTF_PROGRESS_BAR_LENGTH = 20
 FRAMES_PER_SECOND = 30
+
 
 class LossProgressBar:
     last_gradient_id_start: int = 0
@@ -55,7 +56,7 @@ class LossProgressBar:
             self._display_type = "text"
         self._display_content = None
         self._last_draw: float = 0
-        
+
         # warning management
         self._warnings = dict()
 
@@ -83,7 +84,7 @@ class LossProgressBar:
             relative_window_size=relative_window_size,
             scaling_function=scaling_function,
             display_type=display_type)
-        
+
         for epoch, update in loss_progress_bar:
             train_loss = None
             if train_step is not None:
@@ -107,13 +108,14 @@ class LossProgressBar:
             self._warnings[warning] += 1
         else:
             self._warnings[warning] = 1
-    
+
     def draw_warnings_html(self):
         ret = '<div>'
         for warning, count in self._warnings.items():
-            ret += f'<span style="color:{get_warning_font_color()};font-weight:bold">Warning:</span> {warning}: {count}x\n<br>\n'
-        return ret +'</div>'
-    
+            ret += f'<span style="color:{get_warning_font_color(
+            )};font-weight:bold">Warning:</span> {warning}: {count}x\n<br>\n'
+        return ret + '</div>'
+
     def draw_warnings_utf8(self):
         ret = ''
         for warning, count in self._warnings.items():
@@ -127,7 +129,8 @@ class LossProgressBar:
                ):
         if train_loss is not None:
             if self._train_losses.get(epoch) != train_loss and self._train_losses.get(epoch) is not None:
-                self._warn(f'train_loss was updated multiple times with different values within the same epoch')
+                self._warn(
+                    f'train_loss was updated multiple times with different values within the same epoch')
             self._train_losses[epoch] = self.scaling_function(train_loss)
 
         for other_loss_name, loss in val_losses.items():
@@ -135,7 +138,8 @@ class LossProgressBar:
                 self._val_losses[other_loss_name] = dict()
             if val_losses[other_loss_name] is not None:
                 if self._val_losses[other_loss_name].get(epoch) != loss and self._val_losses[other_loss_name].get(epoch) is not None:
-                    self._warn(f'{other_loss_name} was updated with multiple times with different values within the same epoch')
+                    self._warn(
+                        f'{other_loss_name} was updated with multiple times with different values within the same epoch')
                 self._val_losses[other_loss_name][epoch] = self.scaling_function(
                     loss)
         # Only draw at most at given Framerate
@@ -143,7 +147,6 @@ class LossProgressBar:
         if current_time - self._last_draw >= 1/FRAMES_PER_SECOND or epoch == self.epochs-1:
             self.draw(epoch)
             self._last_draw = current_time
-        
 
     def draw(self, epoch: int):
         overall_min = float('inf')
@@ -291,22 +294,12 @@ class LossProgressBar:
         content = ""
         for binned_loss in binned_losses:
             if binned_loss is None:
-                content += "/"
+                content += get_text_continuous(None)
                 continue
-            if binned_loss <= 0.25:
-                content += "░"
-                continue
-            if binned_loss <= 0.5:
-                content += "▒"
-                continue
-            if binned_loss <= 0.75:
-                content += "▓"
-                continue
-            else:
-                content += "█"
-                continue
+            content += get_text_continuous(1-binned_loss)
 
-        content += "-"*(40-len(content))
+        content += get_text_continuous(-1) * \
+            (UTF_PROGRESS_BAR_LENGTH-len(content))
         content = "[" + content + "]"
         content += "  "
 
@@ -322,13 +315,17 @@ class LossProgressBar:
         content += ' |'
         content += loss_string
         content += ' |'
-        content += '█' if visual_max_loss == text_max_loss else ' '
+        content += get_text_continuous(
+            0) if visual_max_loss == text_max_loss else ' '
         content += max_loss_string
-        content += '█' if visual_max_loss == text_max_loss else ' '
+        content += get_text_continuous(
+            0) if visual_max_loss == text_max_loss else ' '
         content += '|'
-        content += '░' if visual_min_loss == text_min_loss else ' '
+        content += get_text_continuous(
+            1) if visual_min_loss == text_min_loss else ' '
         content += min_loss_string
-        content += '░' if visual_min_loss == text_min_loss else ' '
+        content += get_text_continuous(
+            1) if visual_min_loss == text_min_loss else ' '
         return content + "\n"
 
     def create_svg_progress_bar(
