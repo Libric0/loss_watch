@@ -84,16 +84,15 @@ class LossProgressBar:
             relative_window_size=relative_window_size,
             scaling_function=scaling_function,
             display_type=display_type)
-
         for epoch, update in loss_progress_bar:
-            train_loss = None
             if train_step is not None:
                 train_loss = train_step()
+                update(train_loss)
             val_losses = dict()
-            if epoch % val_interval == 0:
+            if epoch % val_interval == val_interval - 1:
                 for val_step, func in val_steps.items():
                     val_losses[val_step] = func()
-            update(train_loss, **val_losses)
+                update(**val_losses)
 
     def __iter__(self):
         return self
