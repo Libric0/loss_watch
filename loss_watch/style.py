@@ -101,7 +101,7 @@ _text_palette: Callable[[float], str] | str | None = None
 _text_palettes = {
     # ASCII
     'contrast': list('/░▒▓█-'),
-    'numeric': list('/0123456789-'),
+    'decimal': list('/0123456789-'),
 
     # Emoji
     'magma': list('✖⬛🟦🟪🟥🟧🟨⬜➖'),
@@ -116,7 +116,7 @@ for missing data (i.e. no evals left from existing data). The second stands for 
 
 It contains the following ASCII palettes:
 - contrast: `/░▒▓█-`
-- numeric: `/0123456789-`
+- decimal: `/0123456789-`
 
 It contains the following Emoji palettes:
 - magma: `✖⬛🟦🟪🟥🟧🟨⬜➖`
@@ -186,3 +186,6 @@ def get_text_continuous(position: float | None) -> str:
     if index >= len(palette) - 2:
         return palette[-2]
     return palette[index+1]
+
+
+def is_emoji(char: str) -> bool:
