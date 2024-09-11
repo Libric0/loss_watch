@@ -189,3 +189,4 @@ def get_text_continuous(position: float | None) -> str:
 
 
 def is_emoji(char: str) -> bool:
+    pass
